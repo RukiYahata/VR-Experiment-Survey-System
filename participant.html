@@ -40,12 +40,13 @@ async function init() {
   Object.keys(answers).forEach(k => delete answers[k]); Object.keys(orders).forEach(k => delete orders[k]);
   try { cfg = await fetchConfig(); } catch (e) { root.innerHTML = '<p class="err">設定を読み込めませんでした。通信状況を確認して再読み込みしてください。</p>'; return; }
   conds = buildConditions(cfg.factors);
+  document.title = cfg.surveyTitle || DEFAULT_SURVEY_TITLE;
   showStart();
 }
 init();
 
 function showStart() {
-  root.innerHTML = `<h1>アンケート</h1>
+  root.innerHTML = `<h1>${esc(cfg.surveyTitle || DEFAULT_SURVEY_TITLE)}</h1>
     <label class="f" for="uid">ユーザーID</label><input id="uid" autocomplete="off">
     <label class="f" for="trial">何回目</label><input id="trial" type="number" min="1" value="1">
     <label class="f" for="cond">条件</label>
@@ -65,8 +66,7 @@ function showStart() {
 function showSection() {
   const s = secOrder[secIdx], { min, max, minLabel, maxLabel } = cfg.scale;
   const nums = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-  root.innerHTML = `<h1>${esc(s.title)} <small class="hint">(${secIdx + 1}/${secOrder.length})</small></h1>` +
-    orders[s.id].map((it, n) => `<div class="q" data-id="${esc(it.id)}"><div>${n + 1}. ${esc(it.text)}</div>
+  root.innerHTML = orders[s.id].map((it, n) => `<div class="q" data-id="${esc(it.id)}"><div>${n + 1}. ${esc(it.text)}</div>
       <div class="scale">${nums.map(v => `<label><input type="radio" name="${esc(it.id)}" value="${v}" ${answers[it.id] == v ? 'checked' : ''}><span>${v}</span></label>`).join('')}</div>
       <div class="ends"><span>${esc(minLabel)}</span><span>${esc(maxLabel)}</span></div></div>`).join('') +
     `<p id="e" class="err"></p><button id="next">${secIdx + 1 < secOrder.length ? '次へ' : '送信'}</button>`;

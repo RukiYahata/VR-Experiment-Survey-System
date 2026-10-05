@@ -44,6 +44,10 @@
   <button class="sub" id="importJson">JSONファイルを読み込み</button>
   <input type="file" id="jsonFile" accept=".json,application/json" hidden>
 
+  <h2>アンケートのタイトル</h2>
+  <label for="stitle">開始画面に表示されます(質問画面には表示されません)</label>
+  <input id="stitle">
+
   <h2>リッカート尺度</h2>
   <div class="row">
     <div><label for="smin">最小値</label><input id="smin" type="number"></div>
@@ -87,6 +91,7 @@ $('pw').onkeydown = e => { if (e.key === 'Enter') login($('pw').value); };
 if (pw) login(pw);
 
 function render() {
+  $('stitle').value = cfg.surveyTitle ?? DEFAULT_SURVEY_TITLE;
   $('smin').value = cfg.scale.min; $('smax').value = cfg.scale.max;
   $('sminl').value = cfg.scale.minLabel; $('smaxl').value = cfg.scale.maxLabel;
   $('shuffleSec').checked = !!cfg.shuffleSections;
@@ -106,7 +111,7 @@ function render() {
   cfg.sections.forEach((s, i) => {
     const d = document.createElement('div'); d.className = 'box';
     d.innerHTML = `<div class="row"><div><label>分野ID</label><input data-s="${i}" data-k="id"></div>
-      <div><label>分野名</label><input data-s="${i}" data-k="title"></div></div>
+      <div><label>分野名(管理用・参加者には表示されません)</label><input data-s="${i}" data-k="title"></div></div>
       <label>項目</label><textarea data-s="${i}" data-k="items"></textarea>
       <button class="sub" data-dels="${i}">この分野を削除</button>`;
     $('sections').appendChild(d);
@@ -119,6 +124,7 @@ function render() {
 
 function collect() {
   const c = {
+    surveyTitle: $('stitle').value.trim() || DEFAULT_SURVEY_TITLE,
     scale: { min: +$('smin').value, max: +$('smax').value, minLabel: $('sminl').value, maxLabel: $('smaxl').value },
     shuffleSections: $('shuffleSec').checked, factors: [], sections: []
   };

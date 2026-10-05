@@ -1,7 +1,10 @@
 // ★ GASをデプロイして得たウェブアプリURLを貼る
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCrEXHs6-qlxleyeqxGfh3zJq7A0gI0EwQaMPfyz0DFYp6AZ_l6rOkJSqhOrKnEsiB/exec';
 
+const DEFAULT_SURVEY_TITLE = 'VRにおける人の認識に関わる研究';
+
 const DEFAULT_CONFIG = {
+  surveyTitle: DEFAULT_SURVEY_TITLE,
   scale: { min: 1, max: 6, minLabel: '全くそう思わない', maxLabel: '非常にそう思う' },
   factors: [
     { key: 'EXP_Avatar', name: '実験者の外見', levels: ['女性', 'ロボット'] },
