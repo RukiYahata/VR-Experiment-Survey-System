@@ -25,15 +25,7 @@
 </style>
 </head>
 <body>
-<main id="login">
-  <h1>管理者ログイン</h1>
-  <label for="pw">パスワード</label>
-  <input id="pw" type="password" autocomplete="current-password">
-  <p><button id="loginBtn">ログイン</button></p>
-  <p id="loginMsg" class="err"></p>
-</main>
-
-<main id="app" hidden>
+<main id="app">
   <h1>管理者画面</h1>
   <p><a id="toUser" href="participant.html">利用者画面を開く</a>
      <span class="hint">(利用者画面から管理者画面へのリンクはありません)</span></p>
@@ -76,19 +68,24 @@
 <script src="common.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-let pw = sessionStorage.getItem('adminPw') || '';
 let cfg;
 
-async function login(p) {
-  const r = await postGas({ action: 'checkPassword', password: p });
-  if (!r.ok) { $('loginMsg').textContent = r.error || 'ログインに失敗しました'; return; }
-  pw = p; sessionStorage.setItem('adminPw', p);
-  $('login').hidden = true; $('app').hidden = false;
-  cfg = await fetchConfig(); render();
+(async function init() {
+  try { cfg = await fetchConfig(); } catch (e) { cfg = DEFAULT_CONFIG; say('設定を読み込めませんでした(初期値を表示中)', true); }
+  render();
+  if (gasVersion !== REQUIRED_GAS_VERSION) say('GASが古いバージョンのままです。Code.gs を貼り替えて「新しいバージョン」で再デプロイしてください。', true);
+})();
+
+async function saveToGas(c) {
+  let pw = localStorage.getItem('adminPw') || '';
+  let r = await postGas({ action: 'saveConfig', password: pw, config: c });
+  if (!r.ok && r.auth) {            // GAS側にパスワードが設定されている場合のみ、初回に1回だけ入力
+    pw = prompt('保存用パスワードを入力してください(この端末に記憶されます)') || '';
+    r = await postGas({ action: 'saveConfig', password: pw, config: c });
+    if (r.ok) localStorage.setItem('adminPw', pw);
+  }
+  return r;
 }
-$('loginBtn').onclick = () => login($('pw').value);
-$('pw').onkeydown = e => { if (e.key === 'Enter') login($('pw').value); };
-if (pw) login(pw);
 
 function render() {
   $('stitle').value = cfg.surveyTitle ?? DEFAULT_SURVEY_TITLE;
@@ -169,7 +166,7 @@ $('save').onclick = async () => {
   const ids = c.sections.flatMap(s => s.items.map(i => i.id));
   if (new Set(ids).size !== ids.length) return say('項目IDが重複しています', true);
   say('保存中…');
-  const r = await postGas({ action: 'saveConfig', password: pw, config: c });
+  const r = await saveToGas(c);
   if (r.ok) { cfg = c; say('保存しました。利用者画面に反映されます。'); } else say(r.error || '保存に失敗しました', true);
 };
 $('exportJson').onclick = () => {
