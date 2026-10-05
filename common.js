@@ -4,9 +4,9 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCrEXHs6-qlxleyeqxGfh3
 const DEFAULT_CONFIG = {
   scale: { min: 1, max: 6, minLabel: '全くそう思わない', maxLabel: '非常にそう思う' },
   factors: [
-    { name: '実験者の外見', levels: ['女性', 'ロボット'] },
-    { name: '参加者の外見', levels: ['女性', 'ロボット'] },
-    { name: '視点位置', levels: ['一人称', '横から'] }
+    { key: 'EXP_Avatar', name: '実験者の外見', levels: ['女性', 'ロボット'] },
+    { key: 'PART_Avatar', name: '参加者の外見', levels: ['女性', 'ロボット'] },
+    { key: 'PART_POV', name: '視点位置', levels: ['一人称', '横から'] }
   ],
   shuffleSections: false,
   sections: [
@@ -41,5 +41,8 @@ function buildConditions(factors) {
     combos.forEach(c => f.levels.forEach(l => next.push(c.concat(l))));
     combos = next;
   });
-  return combos.map(c => ({ id: c.join('_'), label: c.join(' × ') }));
+  return combos.map(c => ({ id: c.join('_'), label: c.join(' × '), levels: c }));
 }
+
+// スプレッドシートの列名(key未設定なら因子名)
+function factorKey(f) { return (f.key || f.name).trim(); }

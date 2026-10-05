@@ -35,11 +35,14 @@ const answers = {}, orders = {};
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
-(async function init() {
+const RETURN_SEC = 5; // 送信後に最初の画面へ戻るまでの秒数
+async function init() {
+  Object.keys(answers).forEach(k => delete answers[k]); Object.keys(orders).forEach(k => delete orders[k]);
   try { cfg = await fetchConfig(); } catch (e) { root.innerHTML = '<p class="err">設定を読み込めませんでした。通信状況を確認して再読み込みしてください。</p>'; return; }
   conds = buildConditions(cfg.factors);
   showStart();
-})();
+}
+init();
 
 function showStart() {
   root.innerHTML = `<h1>アンケート</h1>
@@ -78,14 +81,14 @@ function showSection() {
     if (++secIdx < secOrder.length) { showSection(); window.scrollTo(0, 0); return; }
     this.disabled = true; this.textContent = '送信中…';
     try {
-      const r = await postGas({
-        action: 'submit', userId: session.userId, trial: session.trial,
-        conditionId: session.cond.id, conditionLabel: session.cond.label,
-        answers, sectionOrder: secOrder.map(x => x.id).join(','),
-        orders: Object.fromEntries(Object.entries(orders).map(([k, v]) => [k, v.map(i => i.id).join(',')]))
-      });
+      const factors = {};
+      cfg.factors.forEach((f, i) => factors[factorKey(f)] = session.cond.levels[i]);
+      const r = await postGas({ action: 'submit', userId: session.userId, trial: session.trial, factors, answers });
       if (!r.ok) throw new Error(r.error);
-      root.innerHTML = '<h1>ご協力ありがとうございました</h1><p>回答を送信しました。</p>';
+      let left = RETURN_SEC;
+      root.innerHTML = `<h1>ご協力ありがとうございました</h1><p>回答を送信しました。<span id="cd">${left}</span>秒後に最初の画面へ戻ります。</p><button id="back">今すぐ戻る</button>`;
+      const t = setInterval(() => { const el = document.getElementById('cd'); if (el) el.textContent = --left; if (left <= 0) { clearInterval(t); init(); } }, 1000);
+      document.getElementById('back').onclick = () => { clearInterval(t); init(); };
     } catch (e) {
       secIdx--; this.disabled = false; this.textContent = '再送信';
       document.getElementById('e').textContent = '送信に失敗しました。もう一度押してください: ' + e.message;

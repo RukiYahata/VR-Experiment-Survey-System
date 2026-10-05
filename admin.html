@@ -93,10 +93,12 @@ function render() {
   $('factors').innerHTML = '';
   cfg.factors.forEach((f, i) => {
     const d = document.createElement('div'); d.className = 'box';
-    d.innerHTML = `<div class="row"><div><label>因子名</label><input data-f="${i}" data-k="name"></div>
+    d.innerHTML = `<div class="row"><div><label>列名(英数字)</label><input data-f="${i}" data-k="key"></div>
+      <div><label>因子名</label><input data-f="${i}" data-k="name"></div>
       <div><label>水準(カンマ区切り)</label><input data-f="${i}" data-k="levels"></div></div>
       <button class="sub" data-delf="${i}">この因子を削除</button>`;
     $('factors').appendChild(d);
+    d.querySelector('[data-k=key]').value = f.key || '';
     d.querySelector('[data-k=name]').value = f.name;
     d.querySelector('[data-k=levels]').value = f.levels.join(',');
   });
@@ -123,7 +125,8 @@ function collect() {
   document.querySelectorAll('#factors .box').forEach(b => {
     const name = b.querySelector('[data-k=name]').value.trim();
     const levels = b.querySelector('[data-k=levels]').value.split(',').map(x => x.trim()).filter(Boolean);
-    if (name && levels.length) c.factors.push({ name, levels });
+    const key = b.querySelector('[data-k=key]').value.trim() || name;
+    if (name && levels.length) c.factors.push({ key, name, levels });
   });
   document.querySelectorAll('#sections .box').forEach((b, si) => {
     const id = b.querySelector('[data-k=id]').value.trim() || 's' + (si + 1);
@@ -143,7 +146,7 @@ function collect() {
 }
 function updateCount() { $('condCount').textContent = `条件数: ${buildConditions(collect().factors).length}`; }
 
-$('addFactor').onclick = () => { cfg = collect(); cfg.factors.push({ name: '新しい因子', levels: ['A', 'B'] }); render(); };
+$('addFactor').onclick = () => { cfg = collect(); cfg.factors.push({ key: 'NEW_FACTOR', name: '新しい因子', levels: ['A', 'B'] }); render(); };
 $('addSection').onclick = () => { cfg = collect(); cfg.sections.push({ id: 's' + (cfg.sections.length + 1), title: '新しい分野', items: [] }); render(); };
 document.addEventListener('click', e => {
   const df = e.target.dataset.delf, ds = e.target.dataset.dels;
@@ -155,6 +158,8 @@ document.addEventListener('input', updateCount);
 $('save').onclick = async () => {
   const c = collect();
   if (c.scale.max <= c.scale.min) return say('尺度の最大値は最小値より大きくしてください', true);
+  const keys = c.factors.map(f => f.key);
+  if (new Set(keys).size !== keys.length) return say('因子の列名が重複しています', true);
   const ids = c.sections.flatMap(s => s.items.map(i => i.id));
   if (new Set(ids).size !== ids.length) return say('項目IDが重複しています', true);
   say('保存中…');
