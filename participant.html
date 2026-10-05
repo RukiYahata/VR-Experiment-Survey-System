@@ -39,6 +39,10 @@ const RETURN_SEC = 5; // 送信後に最初の画面へ戻るまでの秒数
 async function init() {
   Object.keys(answers).forEach(k => delete answers[k]); Object.keys(orders).forEach(k => delete orders[k]);
   try { cfg = await fetchConfig(); } catch (e) { root.innerHTML = '<p class="err">設定を読み込めませんでした。通信状況を確認して再読み込みしてください。</p>'; return; }
+  if (gasVersion !== REQUIRED_REQUIRED_GAS_VERSION) {
+    root.innerHTML = '<p class="err">サーバー(GAS)のバージョンが古いため開始できません。実験者に連絡してください。<br><small>(管理者向け: Code.gs を貼り替え、「デプロイを管理」で新しいバージョンとして再デプロイしてください)</small></p>';
+    return;
+  }
   conds = buildConditions(cfg.factors);
   document.title = cfg.surveyTitle || DEFAULT_SURVEY_TITLE;
   showStart();
@@ -84,7 +88,7 @@ function showSection() {
       const factors = {};
       cfg.factors.forEach((f, i) => factors[factorKey(f)] = session.cond.levels[i]);
       const r = await postGas({ action: 'submit', userId: session.userId, trial: session.trial, factors, answers });
-      if (!r.ok) throw new Error(r.error);
+      if (!r.ok || r.v !== REQUIRED_GAS_VERSION) throw new Error((r.v !== REQUIRED_GAS_VERSION ? '【GASが古い版のままです。Code.gsを貼り替えて「新しいバージョン」で再デプロイしてください】 ' : '') + (r.error || ''));
       let left = RETURN_SEC;
       root.innerHTML = `<h1>ご協力ありがとうございました</h1><p>回答を送信しました。<span id="cd">${left}</span>秒後に最初の画面へ戻ります。</p><button id="back">今すぐ戻る</button>`;
       const t = setInterval(() => { const el = document.getElementById('cd'); if (el) el.textContent = --left; if (left <= 0) { clearInterval(t); init(); } }, 1000);

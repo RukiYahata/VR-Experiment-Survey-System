@@ -1,6 +1,9 @@
 // ★ GASをデプロイして得たウェブアプリURLを貼る
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCrEXHs6-qlxleyeqxGfh3zJq7A0gI0EwQaMPfyz0DFYp6AZ_l6rOkJSqhOrKnEsiB/exec';
 
+const REQUIRED_GAS_VERSION = 4; // gas/Code.gs の VERSION と一致させる
+let gasVersion = null; // GAS側のバージョン(古いデプロイの検出用)
+
 const DEFAULT_SURVEY_TITLE = 'VRにおける人の認識に関わる研究';
 
 const DEFAULT_CONFIG = {
@@ -23,6 +26,7 @@ const DEFAULT_CONFIG = {
 async function fetchConfig() {
   const r = await fetch(GAS_URL + '?t=' + Date.now());
   const j = await r.json();
+  gasVersion = j.version || 0;
   return j.config || DEFAULT_CONFIG;
 }
 
