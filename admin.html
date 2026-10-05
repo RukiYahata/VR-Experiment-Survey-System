@@ -83,7 +83,6 @@ async function login(p) {
   $('loginMsg').textContent = '確認中…';
   let r;
   try { r = await postGas({ action: 'checkPassword', password: p }); } catch (e) { $('loginMsg').textContent = '通信に失敗しました'; return; }
-  if (r.v !== REQUIRED_GAS_VERSION) { $('loginMsg').textContent = 'GASが古いバージョンのままです。Code.gs を貼り替えて「新しいバージョン」で再デプロイしてください。'; return; }
   if (!r.ok) { sessionStorage.removeItem('adminPw'); $('loginMsg').textContent = r.error || 'ログインに失敗しました'; return; }
   pw = p; sessionStorage.setItem('adminPw', p);
   $('login').hidden = true; $('app').hidden = false;

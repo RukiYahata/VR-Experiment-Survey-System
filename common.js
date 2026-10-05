@@ -1,9 +1,6 @@
 // ★ GASをデプロイして得たウェブアプリURLを貼る
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCrEXHs6-qlxleyeqxGfh3zJq7A0gI0EwQaMPfyz0DFYp6AZ_l6rOkJSqhOrKnEsiB/exec';
 
-const REQUIRED_GAS_VERSION = 4; // gas/Code.gs の VERSION と一致させる
-let gasVersion = null; // GAS側のバージョン(古いデプロイの検出用)
-
 const DEFAULT_SURVEY_TITLE = 'VRにおける人の認識に関わる研究';
 
 const DEFAULT_CONFIG = {
@@ -23,20 +20,37 @@ const DEFAULT_CONFIG = {
   ]
 };
 
+// タイムアウト付きfetch(通信が止まっても「読み込み中」のまま固まらないように)
+async function fetchWithTimeout(url, opt, ms) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms || 15000);
+  try { return await fetch(url, Object.assign({}, opt, { signal: ctl.signal })); } finally { clearTimeout(t); }
+}
+
+// 保存済み設定に欠けがあっても動くように初期値で補う
+function normalizeConfig(c) {
+  c = c || {}; const d = DEFAULT_CONFIG;
+  return {
+    surveyTitle: c.surveyTitle || d.surveyTitle,
+    scale: Object.assign({}, d.scale, c.scale || {}),
+    factors: Array.isArray(c.factors) ? c.factors.map(f => ({ key: f.key, name: f.name || f.key || '', levels: f.levels || [] })) : d.factors,
+    shuffleSections: !!c.shuffleSections,
+    sections: Array.isArray(c.sections) ? c.sections.map((s, i) => ({ id: s.id || 's' + (i + 1), title: s.title || '', items: s.items || [] })) : d.sections
+  };
+}
+
 async function fetchConfig() {
-  const r = await fetch(GAS_URL + '?t=' + Date.now());
+  const r = await fetchWithTimeout(GAS_URL + '?t=' + Date.now());
   const j = await r.json();
-  gasVersion = j.version || 0;
-  return j.config || DEFAULT_CONFIG;
+  return normalizeConfig(j.config);
 }
 
 // text/plain にすることでCORSプリフライトを回避(GASの定番手法)
 async function postGas(body) {
-  const r = await fetch(GAS_URL, {
+  const r = await fetchWithTimeout(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(body)
-  });
+  }, 30000);
   return r.json();
 }
 
